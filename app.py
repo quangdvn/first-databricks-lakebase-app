@@ -49,18 +49,46 @@ def ensure_table():
 
 
 def ensure_watchlist_table():
-    """Create the watchlist table in Lakebase if it doesn't exist yet."""
-    lakebase.run_write(
+    """Create the watchlist table in Lakebase if it doesn't exist yet.
+    
+    NOTE: On Databricks free edition, CDC/REPLICA IDENTITY may have limitations.
+    If you need CDC for Lakehouse Sync, you may need a paid tier.
+    """
+    # Check if table exists
+    exists = lakebase.run_query(
         f"""
-        CREATE TABLE IF NOT EXISTS {WATCHLIST_TABLE_NAME} (
-            symbol TEXT NOT NULL,
-            email TEXT NOT NULL,
-            latest_price NUMERIC,
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-            PRIMARY KEY (symbol, email)
+        SELECT EXISTS (
+            SELECT FROM pg_tables 
+            WHERE schemaname = 'public' AND tablename = '{WATCHLIST_TABLE_NAME}'
         )
         """
     )
+    
+    if not exists[0]['exists']:
+        # Create table
+        lakebase.run_write(
+            f"""
+            CREATE TABLE {WATCHLIST_TABLE_NAME} (
+                symbol TEXT NOT NULL,
+                email TEXT NOT NULL,
+                latest_price NUMERIC,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                PRIMARY KEY (symbol, email)
+            )
+            """
+        )
+        
+        # Try to set REPLICA IDENTITY for CDC (may fail on free tier)
+        try:
+            lakebase.run_write(
+                f"ALTER TABLE {WATCHLIST_TABLE_NAME} REPLICA IDENTITY FULL"
+            )
+            logger.info(f"Set REPLICA IDENTITY FULL on {WATCHLIST_TABLE_NAME}")
+        except Exception as e:
+            logger.warning(
+                f"Could not set REPLICA IDENTITY on {WATCHLIST_TABLE_NAME}: {e}. "
+                "This is expected on Databricks free edition. CDC/Lakehouse Sync may not be available."
+            )
 
 
 def _current_user_email() -> str:
