@@ -10,4 +10,9 @@ wheels/
 .venv
 .env
 
+# Local deve
 .vscode/**
+
+# Agents
+.claude/*
+.databricks/*

@@ -14,6 +14,10 @@ from databricks.sdk.service import workspace
 
 w = WorkspaceClient()
 
+print("Current scopes: ")
+for scope in w.secrets.list_scopes():
+    print(f" - {scope}")
+
 w.secrets.create_scope(scope="massive")
 w.secrets.put_secret(
     scope="massive",
@@ -40,3 +44,7 @@ w.secrets.put_acl(
     principal="users",
     permission=workspace.AclPermission.READ,
 )
+
+print("After scopes: ")
+for scope in w.secrets.list_scopes():
+    print(f" - {scope}")
