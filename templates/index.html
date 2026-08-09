@@ -239,6 +239,26 @@
         font-size: 13px;
       }
 
+      .delete-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+        margin: 0;
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        box-shadow: 0 2px 8px rgba(245, 101, 101, 0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .delete-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(245, 101, 101, 0.5);
+      }
+
+      .actions-cell {
+        text-align: center;
+      }
+
       .empty-state {
         text-align: center;
         padding: 48px 20px;
@@ -273,6 +293,11 @@
         td {
           padding: 12px;
           font-size: 13px;
+        }
+
+        .delete-btn {
+          padding: 4px 8px;
+          font-size: 12px;
         }
       }
     </style>
@@ -320,11 +345,12 @@
                   <th>Email</th>
                   <th>Latest Price</th>
                   <th>Last Updated</th>
+                  <th style="text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody id="watchlist-body">
                 <tr>
-                  <td colspan="4" class="empty-state">
+                  <td colspan="5" class="empty-state">
                     <div class="empty-state-icon">📊</div>
                     <div class="empty-state-text">No stocks in your watchlist yet. Add one above to get started!</div>
                   </td>
@@ -340,6 +366,37 @@
       const form = document.getElementById('stock-form');
       const resultEl = document.getElementById('result');
       const watchlistBody = document.getElementById('watchlist-body');
+
+      async function deleteStock(symbol) {
+        // Show confirmation dialog
+        const confirmed = confirm(`Are you sure you want to remove ${symbol} from your watchlist?`);
+        
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          const resp = await fetch(`/watchlist/${symbol}`, {
+            method: 'DELETE',
+          });
+          const data = await resp.json();
+          
+          if (!resp.ok) {
+            resultEl.className = 'error';
+            resultEl.textContent = 'Error deleting: ' + (data.error || resp.statusText);
+            return;
+          }
+          
+          resultEl.className = '';
+          resultEl.textContent = `✅ Removed ${symbol} from watchlist`;
+          
+          // Reload the watchlist
+          loadWatchlist();
+        } catch (err) {
+          resultEl.className = 'error';
+          resultEl.textContent = 'Failed to delete: ' + err;
+        }
+      }
 
       async function loadWatchlist() {
         try {
@@ -361,7 +418,7 @@
           if (data.length === 0) {
             watchlistBody.innerHTML = `
               <tr>
-                <td colspan="4" class="empty-state">
+                <td colspan="5" class="empty-state">
                   <div class="empty-state-icon">📊</div>
                   <div class="empty-state-text">No stocks in your watchlist yet. Add one above to get started!</div>
                 </td>
@@ -384,6 +441,9 @@
               <td>${row.email || '-'}</td>
               <td class="price">${price}</td>
               <td class="timestamp">${updated}</td>
+              <td class="actions-cell">
+                <button class="delete-btn" onclick="deleteStock('${row.symbol}')">🗑️ Delete</button>
+              </td>
             `;
             watchlistBody.appendChild(tr);
           });
