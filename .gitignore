@@ -8,3 +8,11 @@ wheels/
 
 # Virtual environments
 .venv
+.env
+
+# Local deve
+.vscode/**
+
+# Agents
+.claude/*
+.databricks/*
