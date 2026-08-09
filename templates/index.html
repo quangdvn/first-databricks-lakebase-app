@@ -259,6 +259,137 @@
         text-align: center;
       }
 
+      .details-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+        margin: 0 4px 0 0;
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .details-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(66, 153, 225, 0.5);
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.2s ease;
+      }
+
+      .modal.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #e2e8f0;
+      }
+
+      .modal-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2d3748;
+        margin: 0;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #a0aec0;
+        cursor: pointer;
+        padding: 0;
+        margin: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+      }
+
+      .close-btn:hover {
+        background: #f7fafc;
+        color: #4a5568;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .detail-row {
+        margin-bottom: 16px;
+      }
+
+      .detail-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .detail-value {
+        font-size: 16px;
+        color: #2d3748;
+        font-weight: 500;
+      }
+
+      .company-logo {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        object-fit: contain;
+        background: #f7fafc;
+        padding: 8px;
+        margin-bottom: 16px;
+      }
+
+      .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #a0aec0;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
       .empty-state {
         text-align: center;
         padding: 48px 20px;
@@ -362,10 +493,115 @@
       </div>
     </div>
 
+    <!-- Ticker Details Modal -->
+    <div id="details-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-symbol"></h2>
+          <button class="close-btn" onclick="closeDetailsModal()">&times;</button>
+        </div>
+        <div id="modal-body">
+          <div class="loading-spinner">Loading...</div>
+        </div>
+      </div>
+    </div>
+
     <script>
       const form = document.getElementById('stock-form');
       const resultEl = document.getElementById('result');
       const watchlistBody = document.getElementById('watchlist-body');
+      const detailsModal = document.getElementById('details-modal');
+      const modalBody = document.getElementById('modal-body');
+      const modalSymbol = document.getElementById('modal-symbol');
+
+      async function showTickerDetails(symbol) {
+        // Open modal and show loading state
+        detailsModal.classList.add('active');
+        modalSymbol.textContent = symbol;
+        modalBody.innerHTML = '<div class="loading-spinner">Loading company details...</div>';
+
+        try {
+          const resp = await fetch(`/ticker/${symbol}/details`);
+          const data = await resp.json();
+          
+          if (!resp.ok) {
+            modalBody.innerHTML = `<div class="detail-row"><p style="color: #f56565;">${data.error || 'Failed to load details'}</p></div>`;
+            return;
+          }
+
+          // Extract results from the API response
+          const results = data.results || data;
+          
+          // Build the details HTML
+          let html = '';
+          
+          // Logo if available
+          if (results.branding && results.branding.logo_url) {
+            html += `<img src="${results.branding.logo_url}" alt="${results.name} logo" class="company-logo" />`;
+          }
+          
+          // Company Name
+          if (results.name) {
+            html += `<div class="detail-row"><div class="detail-label">Company Name</div><div class="detail-value">${results.name}</div></div>`;
+          }
+          
+          // Market
+          if (results.market) {
+            html += `<div class="detail-row"><div class="detail-label">Market</div><div class="detail-value">${results.market}</div></div>`;
+          }
+          
+          // Primary Exchange
+          if (results.primary_exchange) {
+            html += `<div class="detail-row"><div class="detail-label">Primary Exchange</div><div class="detail-value">${results.primary_exchange}</div></div>`;
+          }
+          
+          // Type
+          if (results.type) {
+            html += `<div class="detail-row"><div class="detail-label">Type</div><div class="detail-value">${results.type}</div></div>`;
+          }
+          
+          // Market Cap
+          if (results.market_cap) {
+            const marketCapFormatted = (results.market_cap / 1e9).toFixed(2) + 'B';
+            html += `<div class="detail-row"><div class="detail-label">Market Cap</div><div class="detail-value">${marketCapFormatted}</div></div>`;
+          }
+          
+          // Locale
+          if (results.locale) {
+            html += `<div class="detail-row"><div class="detail-label">Locale</div><div class="detail-value">${results.locale}</div></div>`;
+          }
+          
+          // Currency
+          if (results.currency_name) {
+            html += `<div class="detail-row"><div class="detail-label">Currency</div><div class="detail-value">${results.currency_name}</div></div>`;
+          }
+          
+          // Description
+          if (results.description) {
+            html += `<div class="detail-row"><div class="detail-label">Description</div><div class="detail-value" style="line-height: 1.6;">${results.description}</div></div>`;
+          }
+          
+          // Homepage URL
+          if (results.homepage_url) {
+            html += `<div class="detail-row"><div class="detail-label">Website</div><div class="detail-value"><a href="${results.homepage_url}" target="_blank" style="color: #667eea;">${results.homepage_url}</a></div></div>`;
+          }
+          
+          modalBody.innerHTML = html || '<div class="detail-row"><p>No details available</p></div>';
+        } catch (err) {
+          modalBody.innerHTML = `<div class="detail-row"><p style="color: #f56565;">Error: ${err.message}</p></div>`;
+        }
+      }
+
+      function closeDetailsModal() {
+        detailsModal.classList.remove('active');
+      }
+
+      // Close modal when clicking outside
+      detailsModal.addEventListener('click', (e) => {
+        if (e.target === detailsModal) {
+          closeDetailsModal();
+        }
+      });
 
       async function deleteStock(symbol) {
         // Show confirmation dialog
@@ -442,6 +678,7 @@
               <td class="price">${price}</td>
               <td class="timestamp">${updated}</td>
               <td class="actions-cell">
+                <button class="details-btn" onclick="showTickerDetails('${row.symbol}')">📊 Details</button>
                 <button class="delete-btn" onclick="deleteStock('${row.symbol}')">🗑️ Delete</button>
               </td>
             `;

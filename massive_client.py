@@ -91,3 +91,11 @@ class MassiveClient:
         """
         data = self.get(f"/v2/aggs/ticker/{symbol}/prev")
         return data
+
+    def get_ticker_details(self, symbol: str) -> dict:
+        """
+        Fetch company details including name, description, market cap,
+        sector, industry, logo, and other metadata for a ticker symbol.
+        """
+        data = self.get(f"/v3/reference/tickers/{symbol}")
+        return data

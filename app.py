@@ -220,6 +220,28 @@ def delete_from_watchlist(symbol):
     return jsonify({"symbol": symbol, "deleted": True})
 
 
+@app.route("/ticker/<symbol>/details", methods=["GET"])
+def get_ticker_details(symbol):
+    """
+    Fetch rich company details for a ticker symbol from Massive API.
+    Returns company name, description, market cap, sector, industry, logo, etc.
+    """
+    symbol = symbol.strip().upper() if isinstance(symbol, str) else ""
+    
+    if not symbol or not _TICKER_RE.match(symbol):
+        return jsonify({"error": f"Invalid ticker symbol: {symbol!r}"}), 400
+    
+    client = MassiveClient()
+    try:
+        data = client.get_ticker_details(symbol)
+        return jsonify(data)
+    except requests.HTTPError as e:
+        # Massive returns 404 for unknown tickers
+        return jsonify({"error": f"Ticker details not found: {symbol}"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch ticker details: {str(e)}"}), 500
+
+
 def _extract_latest_price(data: dict) -> float | None:
     """Pull the trade price out of the Massive 'previous close' response shape.
 
