@@ -5,11 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "databricks-sdk>=0.125.0",
-    "databricks-sql-connector>=4.4.0",
-    "flask>=3.1.3",
-    "psycopg2-binary>=2.9.12",
-    "python-dotenv>=1.2.2",
-    "requests>=2.34.2",
-    "sqlalchemy>=2.0.51",
+  "databricks-connect==13.3.2",
+  "databricks-sdk>=0.125.0",
+  "databricks-sql-connector>=4.4.0",
+  "flask>=3.1.3",
+  "psycopg2-binary>=2.9.12",
+  "python-dotenv>=1.2.2",
+  "requests>=2.34.2",
+  "sqlalchemy>=2.0.51",
 ]
+
+[dependency-groups]
+dev = ["ruff>=0.16.2", "ty>=0.0.69"]
