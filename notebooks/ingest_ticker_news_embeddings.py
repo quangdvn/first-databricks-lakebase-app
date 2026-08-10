@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # Ingest Ticker News -> Vector Embeddings (Lakebase)
 # MAGIC
@@ -372,6 +376,12 @@ print("Run the next cell to insert them using executeLakebasePostgresSql tool.")
 
 # COMMAND ----------
 
+# DBTITLE 1,Display fetched raw data
+# Display all_new_rows
+display(all_news_rows)
+
+# COMMAND ----------
+
 # DBTITLE 1,Insert collected news articles using psycopg2
 import psycopg2
 
@@ -530,6 +540,28 @@ print(f"Computed {len(embeddings_df)} embeddings using {EMBEDDING_MODEL_NAME}")
 
 # COMMAND ----------
 
+# DBTITLE 1,Display embeddings_df
+display(embeddings_df)
+
+# COMMAND ----------
+
+# DBTITLE 1,Prepare Embeddings rows
+from datetime import datetime
+
+# Add model_name and embedded_at columns
+embeddings_df["model_name"] = EMBEDDING_MODEL_NAME
+embeddings_df["embedded_at"] = datetime.now()
+
+embeddings_rows = embeddings_df.to_dict("records")
+
+# Convert embedded_at to string for display to avoid struct<> issue
+for row in embeddings_rows:
+    row["embedded_at"] = str(row["embedded_at"])
+
+display(embeddings_rows)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Ensure the pgvector destination table exists
 # MAGIC
@@ -560,12 +592,6 @@ print(
 # DBTITLE 1,Insert embeddings using psycopg2
 import psycopg2
 from psycopg2.extras import execute_values
-
-# Add model_name and embedded_at columns
-embeddings_df["model_name"] = EMBEDDING_MODEL_NAME
-embeddings_df["embedded_at"] = datetime.now()
-
-embeddings_rows = embeddings_df.to_dict("records")
 
 if len(embeddings_rows) > 0:
     print(
@@ -708,6 +734,11 @@ display(chunks_df.head(5))
 
 # COMMAND ----------
 
+# DBTITLE 1,Display the entire article chunks
+display(chunks_df)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Compute chunk embeddings
 # MAGIC
@@ -786,15 +817,18 @@ print(
 
 # COMMAND ----------
 
+type(chunk_embeddings_df['article_id'])
+
+# COMMAND ----------
+
 # DBTITLE 1,Insert chunk embeddings using psycopg2
 from datetime import datetime
 
 import psycopg2
 
 # Add id (article_id_chunk_index), model_name, and embedded_at columns
-chunk_embeddings_df["id"] = (
-    chunk_embeddings_df["article_id"] + "_" + chunk_embeddings_df["chunk_index"]
-)
+chunk_embeddings_df["chunk_index"] = chunk_embeddings_df["chunk_index"].astype(str)
+chunk_embeddings_df["id"] = chunk_embeddings_df["article_id"].astype(str) + "_" + chunk_embeddings_df["chunk_index"]
 chunk_embeddings_df["model_name"] = EMBEDDING_MODEL_NAME
 chunk_embeddings_df["embedded_at"] = datetime.now()
 chunk_embeddings_df["chunk_index"] = chunk_embeddings_df["chunk_index"].astype(int)
