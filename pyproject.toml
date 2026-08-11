@@ -3,7 +3,7 @@ name = "first-databricks-lakebase"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
   "databricks-connect==13.3.2",
   "databricks-sdk>=0.125.0",
@@ -12,9 +12,9 @@ dependencies = [
   "psycopg2-binary>=2.9.12",
   "python-dotenv>=1.2.2",
   "requests>=2.34.2",
-  "sentence-transformers>=3.3.1",
   "sqlalchemy>=2.0.51",
 ]
 
 [dependency-groups]
 dev = ["ruff>=0.16.2", "ty>=0.0.69"]
+search = ["sentence-transformers>=3.3.1"]

@@ -27,7 +27,13 @@ def get_embedding_model():
     """Lazy-load the sentence-transformers model for embedding queries."""
     global _embedding_model
     if _embedding_model is None:
-        from sentence_transformers import SentenceTransformer
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            raise ImportError(
+                "sentence-transformers is not installed. "
+                "Install it with: pip install sentence-transformers"
+            )
         model_name = os.environ.get("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
         logger.info(f"Loading embedding model: {model_name}")
         _embedding_model = SentenceTransformer(model_name)
