@@ -10,7 +10,7 @@ wheels/
 .venv
 .env
 
-# Local deve
+# Local development
 .vscode/**
 
 # Agents
