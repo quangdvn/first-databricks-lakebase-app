@@ -332,8 +332,8 @@ def vector_search():
         model = get_embedding_model()
         query_embedding = model.encode([query])[0].tolist()
         
-        # Format embedding as PostgreSQL array literal
-        embedding_str = "{" + ",".join(str(float(x)) for x in query_embedding) + "}"
+        # Format embedding as PostgreSQL vector literal (pgvector expects [...])
+        embedding_str = "[" + ",".join(str(float(x)) for x in query_embedding) + "]"
         
         if search_type == "documents":
             results = _search_documents(embedding_str, top_k, ticker_filter)
