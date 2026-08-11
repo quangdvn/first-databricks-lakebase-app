@@ -322,7 +322,7 @@ def vector_search():
         
         if search_type == "documents":
             results = _search_documents(embedding_str, top_k, ticker_filter)
-        else:  # chunks (default)
+        else:
             results = _search_chunks(embedding_str, top_k, ticker_filter)
         
         return jsonify({

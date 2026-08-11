@@ -16,3 +16,4 @@ wheels/
 # Agents
 .claude/*
 .databricks/*
+templates/index.html.bak
