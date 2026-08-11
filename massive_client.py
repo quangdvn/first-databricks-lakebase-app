@@ -13,7 +13,15 @@ from typing import Any
 import requests
 from databricks.sdk import WorkspaceClient
 
-_w = WorkspaceClient()
+_w = None
+
+
+def _get_workspace_client():
+    """Lazy-load the WorkspaceClient."""
+    global _w
+    if _w is None:
+        _w = WorkspaceClient()
+    return _w
 
 _SCOPE = os.environ.get("MASSIVE_SECRET_SCOPE", "massive")
 _KEY = os.environ.get("MASSIVE_SECRET_KEY", "api-key")
@@ -24,7 +32,8 @@ _DEFAULT_TIMEOUT = 30
 
 def _get_api_key() -> str:
     """Fetch and decode the Massive API key from the Databricks secret scope."""
-    secret = _w.secrets.get_secret(scope=_SCOPE, key=_KEY)
+    w = _get_workspace_client()
+    secret = w.secrets.get_secret(scope=_SCOPE, key=_KEY)
     return base64.b64decode(secret.value).decode("utf-8")
 
 

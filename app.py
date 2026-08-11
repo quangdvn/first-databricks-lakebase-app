@@ -43,10 +43,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("massive-app")
 
 app = Flask(__name__)
-_w = WorkspaceClient()
+_w = None
 
 TABLE_NAME = os.environ.get("MASSIVE_TABLE_NAME", "massive_records")
 WATCHLIST_TABLE_NAME = os.environ.get("WATCHLIST_TABLE_NAME", "watchlist")
+
+
+def _get_workspace_client():
+    """Lazy-load the WorkspaceClient."""
+    global _w
+    if _w is None:
+        _w = WorkspaceClient()
+    return _w
 
 # Basic stock ticker shape check: 1-10 uppercase letters, with an optional
 # ".X" or ".XX" share-class suffix (e.g. "BRK.B"). This rejects obviously
@@ -121,7 +129,8 @@ def _current_user_email() -> str:
     header_email = request.headers.get("X-Forwarded-Email")
     if header_email:
         return header_email
-    return _w.current_user.me().user_name
+    w = _get_workspace_client()
+    return w.current_user.me().user_name
 
 
 @app.route("/healthz")
