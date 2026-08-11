@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vector Search - News & Insights</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 40px 20px;
+        color: #1a202c;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+
+      h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .subtitle {
+        color: #718096;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .nav-link {
+        display: inline-block;
+        margin-top: 16px;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: color 0.2s ease;
+      }
+
+      .nav-link:hover {
+        color: #764ba2;
+      }
+
+      .card {
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+
+      .search-section {
+        margin-bottom: 32px;
+      }
+
+      .form-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 16px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      input[type='text'],
+      select {
+        width: 100%;
+        padding: 14px 16px;
+        font-size: 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        background: #f7fafc;
+      }
+
+      input[type='text']:focus,
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      input[type='checkbox'] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #667eea;
+      }
+
+      .checkbox-label {
+        font-size: 15px;
+        font-weight: 500;
+        color: #4a5568;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      input[type='text']::placeholder {
+        color: #a0aec0;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      button {
+        margin-top: 16px;
+        padding: 14px 32px;
+        font-size: 16px;
+        font-weight: 600;
+        color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .hint {
+        color: #718096;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-top: 8px;
+      }
+
+      #result {
+        margin-top: 20px;
+        padding: 0;
+        border-radius: 10px;
+        font-size: 14px;
+        min-height: 0;
+        transition: all 0.3s ease;
+      }
+
+      #result:not(:empty) {
+        padding: 16px;
+        background: #e6fffa;
+        border-left: 4px solid #38b2ac;
+        color: #234e52;
+      }
+
+      #result.error {
+        background: #fff5f5;
+        border-left: 4px solid #f56565;
+        color: #742a2a;
+      }
+
+      .results-section {
+        margin-top: 32px;
+      }
+
+      .results-header {
+        font-size: 20px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 16px;
+      }
+
+      .result-item {
+        background: #f7fafc;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        border-left: 4px solid #667eea;
+        transition: all 0.2s ease;
+      }
+
+      .result-item:hover {
+        background: #edf2f7;
+        transform: translateX(4px);
+      }
+
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+
+      .result-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 4px;
+        flex: 1;
+      }
+
+      .result-score {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-left: 12px;
+      }
+
+      .result-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 13px;
+        color: #718096;
+        margin-bottom: 12px;
+      }
+
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .ticker-badge {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 12px;
+      }
+
+      .result-text {
+        color: #4a5568;
+        line-height: 1.6;
+        font-size: 15px;
+        margin-bottom: 12px;
+      }
+
+      .result-link {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        transition: color 0.2s ease;
+      }
+
+      .result-link:hover {
+        color: #764ba2;
+        text-decoration: underline;
+      }
+
+      .chunk-context {
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        margin-top: 12px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .chunk-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #a0aec0;
+      }
+
+      .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .empty-state-text {
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #667eea;
+        font-size: 16px;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(102, 126, 234, 0.3);
+        border-radius: 50%;
+        border-top-color: #667eea;
+        animation: spin 0.8s linear infinite;
+        margin-right: 8px;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 20px 16px;
+        }
+
+        .header,
+        .card {
+          padding: 24px;
+        }
+
+        h1 {
+          font-size: 28px;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .result-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .result-score {
+          margin: 8px 0 0 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔍 Semantic Search</h1>
+        <p class="subtitle">
+          Search through ticker news and articles using natural language. Powered by vector embeddings and pgvector.
+        </p>
+        <a href="/" class="nav-link">← Back to Watchlist</a>
+      </div>
+
+      <div class="card">
+        <div class="search-section">
+          <h2 class="form-title">Search News & Articles</h2>
+          <p class="hint">
+            Search through news articles using natural language. Results show full documents by default. Check the box below to include detailed excerpts from article content.
+          </p>
+
+          <form id="search-form">
+            <label for="query">Search Query</label>
+            <input
+              type="text"
+              id="query"
+              name="query"
+              placeholder="e.g., Recent AI developments, Tech stock performance"
+              required />
+
+            <div>
+              <label for="ticker">Filter by Ticker (Optional)</label>
+              <input
+                type="text"
+                id="ticker"
+                name="ticker"
+                placeholder="e.g., AAPL, TSLA"
+                style="width: 50%;" />
+            </div>
+
+            <div class="checkbox-container">
+              <input
+                type="checkbox"
+                id="include-chunks"
+                name="include_chunks" />
+              <label for="include-chunks" class="checkbox-label">
+                Include chunk-level search (more detailed excerpts from article content)
+              </label>
+            </div>
+
+            <button type="submit" id="search-btn">Search</button>
+          </form>
+
+          <div id="result"></div>
+        </div>
+
+        <div class="results-section" id="results-section" style="display: none;">
+          <div class="results-header" id="results-header"></div>
+          <div id="results-container">
+            <!-- Results will be dynamically inserted here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('search-form');
+      const resultEl = document.getElementById('result');
+      const resultsSection = document.getElementById('results-section');
+      const resultsHeader = document.getElementById('results-header');
+      const resultsContainer = document.getElementById('results-container');
+      const searchBtn = document.getElementById('search-btn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const query = document.getElementById('query').value.trim();
+        const includeChunks = document.getElementById('include-chunks').checked;
+        const searchType = includeChunks ? 'chunks' : 'documents';
+        const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+
+        if (!query) {
+          showError('Please enter a search query');
+          return;
+        }
+
+        // Show loading state
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<span class="spinner"></span>Searching...';
+        resultEl.textContent = '';
+        resultEl.className = '';
+        resultsSection.style.display = 'none';
+
+        try {
+          const resp = await fetch('/api/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query,
+              search_type: searchType,
+              ticker: ticker || undefined,
+              top_k: 10
+            })
+          });
+
+          const data = await resp.json();
+
+          if (!resp.ok) {
+            showError(data.error || 'Search failed');
+            return;
+          }
+
+          displayResults(data);
+
+        } catch (err) {
+          console.error('Search error:', err);
+          showError('Network error. Please try again.');
+        } finally {
+          searchBtn.disabled = false;
+          searchBtn.textContent = 'Search';
+        }
+      });
+
+      function showError(message) {
+        resultEl.textContent = message;
+        resultEl.className = 'error';
+      }
+
+      function displayResults(data) {
+        if (!data.results || data.results.length === 0) {
+          resultsSection.style.display = 'block';
+          resultsHeader.textContent = 'No results found';
+          resultsContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <div class="empty-state-text">
+                No matching articles found for your query.<br>
+                Try different keywords or remove the ticker filter.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        resultsSection.style.display = 'block';
+        resultsHeader.textContent = `Found ${data.count} result${data.count !== 1 ? 's' : ''}`;
+
+        const isChunkSearch = data.search_type === 'chunks';
+
+        resultsContainer.innerHTML = data.results.map((result, idx) => {
+          const score = (result.similarity_score * 100).toFixed(1);
+          const publishDate = result.published_utc 
+            ? new Date(result.published_utc).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            : 'Unknown date';
+
+          let html = `
+            <div class="result-item">
+              <div class="result-header">
+                <div>
+                  <div class="result-title">${escapeHtml(result.title || 'Untitled')}</div>
+                </div>
+                <div class="result-score">${score}% match</div>
+              </div>
+              <div class="result-meta">
+                <div class="meta-item">
+                  <span class="ticker-badge">${escapeHtml(result.ticker)}</span>
+                </div>
+                <div class="meta-item">📅 ${publishDate}</div>
+                ${result.author ? `<div class="meta-item">✍️ ${escapeHtml(result.author)}</div>` : ''}
+                ${result.publisher_name ? `<div class="meta-item">📰 ${escapeHtml(result.publisher_name)}</div>` : ''}
+              </div>
+          `;
+
+          if (isChunkSearch && result.chunk_text) {
+            html += `
+              <div class="chunk-context">
+                <div class="chunk-label">Relevant Excerpt (Chunk ${result.chunk_index + 1})</div>
+                <div class="result-text">${escapeHtml(truncate(result.chunk_text, 400))}</div>
+              </div>
+            `;
+          } else if (result.description) {
+            html += `<div class="result-text">${escapeHtml(truncate(result.description, 300))}</div>`;
+          }
+
+          if (result.article_url) {
+            html += `<a href="${escapeHtml(result.article_url)}" target="_blank" class="result-link">Read full article →</a>`;
+          }
+
+          html += `</div>`;
+          return html;
+        }).join('');
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function truncate(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substr(0, maxLength) + '...';
+      }
+    </script>
+  </body>
+</html>

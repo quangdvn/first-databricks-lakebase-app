@@ -20,6 +20,19 @@ from flask import Flask, jsonify, render_template, request
 import lakebase
 from massive_client import MassiveClient
 
+# Lazy-load the embedding model to avoid startup overhead
+_embedding_model = None
+
+def get_embedding_model():
+    """Lazy-load the sentence-transformers model for embedding queries."""
+    global _embedding_model
+    if _embedding_model is None:
+        from sentence_transformers import SentenceTransformer
+        model_name = os.environ.get("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+        logger.info(f"Loading embedding model: {model_name}")
+        _embedding_model = SentenceTransformer(model_name)
+    return _embedding_model
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("massive-app")
 
@@ -268,6 +281,130 @@ def get_ticker_details(symbol):
         return jsonify({"error": f"Ticker details not found: {symbol}"}), 404
     except Exception as e:
         return jsonify({"error": f"Failed to fetch ticker details: {str(e)}"}), 500
+
+
+@app.route("/search")
+def search_page():
+    """Render the vector search UI."""
+    return render_template("search.html")
+
+
+@app.route("/api/search", methods=["POST"])
+def vector_search():
+    """
+    Semantic search over news articles using vector similarity.
+    
+    Accepts a natural language query, embeds it, and searches both:
+    1. Document-level embeddings (title + description)
+    2. Chunk-level embeddings (article content chunks)
+    
+    Returns the most relevant results with metadata.
+    """
+    if not request.is_json:
+        return jsonify({"error": "Content-Type must be application/json"}), 400
+    
+    query = request.json.get("query", "").strip()
+    if not query:
+        return jsonify({"error": "Query cannot be empty"}), 400
+    
+    # Search parameters
+    top_k = min(int(request.json.get("top_k", 10)), 50)  # Cap at 50
+    search_type = request.json.get("search_type", "documents")  # "documents" or "chunks"
+    ticker_filter = request.json.get("ticker", "").strip().upper() or None
+    
+    try:
+        # Embed the query
+        model = get_embedding_model()
+        query_embedding = model.encode([query])[0].tolist()
+        
+        # Format embedding as PostgreSQL array literal
+        embedding_str = "{" + ",".join(str(float(x)) for x in query_embedding) + "}"
+        
+        if search_type == "documents":
+            results = _search_documents(embedding_str, top_k, ticker_filter)
+        else:  # chunks (default)
+            results = _search_chunks(embedding_str, top_k, ticker_filter)
+        
+        return jsonify({
+            "query": query,
+            "search_type": search_type,
+            "ticker_filter": ticker_filter,
+            "results": results,
+            "count": len(results)
+        })
+    
+    except Exception as e:
+        logger.exception("Error during vector search")
+        return jsonify({"error": f"Search failed: {str(e)}"}), 500
+
+
+def _search_documents(query_embedding: str, top_k: int, ticker_filter: str = None) -> list[dict]:
+    """
+    Search document-level embeddings (title + description).
+    
+    Returns articles ranked by cosine similarity to the query.
+    """
+    ticker_clause = "AND d.ticker = %s" if ticker_filter else ""
+    params = [query_embedding, top_k] + ([ticker_filter] if ticker_filter else [])
+    
+    sql = f"""
+        SELECT
+            e.id,
+            e.ticker,
+            e.title,
+            d.description,
+            d.article_url,
+            d.published_utc,
+            d.author,
+            d.publisher_name,
+            1 - (e.embedding <=> %s::vector) AS similarity_score
+        FROM ticker_news_embeddings e
+        JOIN ticker_news_documents d ON e.id = d.id
+        WHERE e.embedding IS NOT NULL
+          {ticker_clause}
+        ORDER BY e.embedding <=> %s::vector
+        LIMIT %s
+    """
+    
+    # Adjust params: query embedding appears twice in the SQL (for similarity calc and ORDER BY)
+    adjusted_params = [query_embedding] + ([ticker_filter] if ticker_filter else []) + [query_embedding, top_k]
+    
+    rows = lakebase.run_query(sql, tuple(adjusted_params))
+    return rows
+
+
+def _search_chunks(query_embedding: str, top_k: int, ticker_filter: str = None) -> list[dict]:
+    """
+    Search chunk-level embeddings (article content chunks).
+    
+    Returns chunks ranked by cosine similarity to the query, with article metadata.
+    """
+    ticker_clause = "AND c.ticker = %s" if ticker_filter else ""
+    params = [query_embedding] + ([ticker_filter] if ticker_filter else []) + [query_embedding, top_k]
+    
+    sql = f"""
+        SELECT
+            c.id,
+            c.article_id,
+            c.ticker,
+            c.chunk_index,
+            c.chunk_text,
+            d.title,
+            d.article_url,
+            d.published_utc,
+            d.author,
+            d.publisher_name,
+            1 - (c.embedding <=> %s::vector) AS similarity_score
+        FROM ticker_news_chunk_embeddings c
+        JOIN ticker_news_documents d ON c.article_id = d.id
+        WHERE c.embedding IS NOT NULL
+          {ticker_clause}
+        ORDER BY c.embedding <=> %s::vector
+        LIMIT %s
+    """
+    
+    rows = lakebase.run_query(sql, tuple(params))
+    return rows
 
 
 def _extract_latest_price(data: dict) -> float | None:
